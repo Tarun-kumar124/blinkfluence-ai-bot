@@ -4,8 +4,8 @@ from flask_cors import CORS
 from openai import OpenAI
 
 app = Flask(__name__)
-# CORS को पूरी तरह ओपन करना
-CORS(app, supports_credentials=True, resources={r"/*": {"origins": "*"}})
+# CORS को सबसे सुरक्षित और ओपन मोड पर सेट करना
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 api_key = os.getenv("OPENAI_API_KEY")
 client = OpenAI(api_key=api_key)
@@ -23,9 +23,9 @@ Authorized Company Data:
 3. Lead Qualification: Business type? Interested services? Budget? Existing website/socials? Business goal? Timeline?
 """
 
-@app.before_request
-def handle_options():
-    # हर रिक्वेस्ट से पहले OPTIONS (Pre-flight) को संभालना
+@app.route('/', methods=['GET', 'POST', 'OPTIONS'])
+@app.route('/chat', methods=['POST', 'OPTIONS'])
+def chat():
     if request.method == 'OPTIONS':
         response = make_response()
         response.headers.add("Access-Control-Allow-Origin", "*")
@@ -33,8 +33,12 @@ def handle_options():
         response.headers.add('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
         return response
 
-@app.route('/chat', methods=['POST'])
-def chat():
+    # अगर कोई नॉर्मल लिंक खोले तो स्वागत संदेश दिखाएं
+    if request.method == 'GET':
+        res = jsonify({"status": "Blinkfluence AI Server is Active and Woken Up!"})
+        res.headers.add("Access-Control-Allow-Origin", "*")
+        return res
+
     data = request.json or {}
     user_message = data.get("message", "")
     
@@ -57,7 +61,6 @@ def chat():
     except Exception as e:
         res = jsonify({"error": str(e)})
         
-    # रिपॉन्स हेडर्स में ओरिजिन अलाउ करना अनिवार्य है
     res.headers.add("Access-Control-Allow-Origin", "*")
     return res
 
